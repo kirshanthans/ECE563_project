@@ -1,0 +1,8 @@
+Serial Time:0.606313
+No. Of Threads:16, Parallel Time:0.292870
+Serial Time:0.548202
+No. Of Threads:8, Parallel Time:0.275458
+Serial Time:0.547756
+No. Of Threads:4, Parallel Time:0.255490
+Serial Time:0.547415
+No. Of Threads:2, Parallel Time:0.366166
