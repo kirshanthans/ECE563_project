@@ -3,11 +3,15 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "omp_map_reduce.h"
 using namespace std;
 #define REPEAT_INPUT 5 // repeat the same set of input this many times
+#define min(a, b) a<b? a : b
+
 
 int main(int argc, char* argv[]){
     int pid, numproc;
+    MPI_Status status;
 
     MPI_Init(&argc, &argv);                 
     MPI_Comm_size(MPI_COMM_WORLD, &numproc);   
@@ -42,10 +46,55 @@ int main(int argc, char* argv[]){
         for(int i=0; i<REPEAT_INPUT-1; i++){
             for(unsigned int j=0; j<no_of_files; j++) filenames.push_back(filenames[j]);
         }
-        //cout << filenames.size() << endl;
-        
+        //send FNUM files to each process
+        while(!filenames.empty()){
+            for(int i=1; i<numproc; i++){
+                
+                int no_files_to_sent = min(FNUM, filenames.size());
+
+                for(int j=0; j<no_files_to_sent; j++){
+                    // TODO : handle overflows
+                    char fname[FLEN];
+                    strcpy(fname, filenames[j].c_str());
+                    
+                    // do a MPI_Send
+                    MPI_Send(fname, FLEN, MPI_CHAR, i, i, MPI_COMM_WORLD);
+                    
+                }
+                // remove the sent files
+                filenames.erase(filenames.begin(), filenames.begin()+no_files_to_sent);
+
+                if(filenames.empty()) break; 
+            }
+        }
+
+        // sedn "all done!" msg to all processes
+        string s = "all done!";
+        char all_done_msg[FLEN];
+        strcpy(all_done_msg, s.c_str());
+        for(int i=1; i<numproc; i++){
+            MPI_Send(all_done_msg, FLEN, MPI_CHAR, i, i, MPI_COMM_WORLD);
+        }
     }
     else{
+        
+        bool all_done = false;
+        string s = "all done!";
+        char fname[FLEN];
+        vector<string> fnames;
+        // poll for filenames
+        while(!all_done){
+            MPI_Recv(fname, FLEN, MPI_CHAR, 0, pid, MPI_COMM_WORLD, &status);
+            
+            string fstr(fname);
+            fnames.push_back(fstr);
+            
+            if(strcmp(s.c_str(), fname) == 0) all_done = true;
+
+        }
+
+        // call the OMP routine for mapping
+        
     
     }
 
