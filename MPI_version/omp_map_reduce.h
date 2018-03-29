@@ -12,7 +12,7 @@
 // for sending filenames
 #define FNUM 10
 #define FLEN 256
-
+#define NTHREADS 8
 
 // data structures
 struct hashNode
@@ -52,5 +52,4 @@ void put(struct hashMap ** map,char * value);
 void fillQueue(char * file,struct queue ** queues,int lockIndex);
 void mapInput(struct queue ** queues,struct hashMap ** map);
 void reducer(char * fileName,int start,int end,struct hashMap ** maps, int fnum);
-int run_omp(int fnum, int nThreads);
-
+//int run_omp(int fnum, char** files, int nThreads);

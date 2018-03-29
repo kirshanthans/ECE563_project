@@ -220,17 +220,17 @@ void reducer(char * fileName,int start,int end,struct hashMap ** maps, int fnum)
 
 
 
-int run_omp(int fnum, int nThreads)
+int run_omp(int fnum, char** files, int nThreads)
 {
 
 
-	char ** inputFiles = (char**)malloc(sizeof(char*)* fnum);
+	char ** inputFiles = files;
 		
 	int i;
 	int numOfThreads=nThreads;
 	struct queue ** queues;
 	struct hashMap ** maps;
-   
+
     // Commented out the serial implementation for now 
     /*
 	queues= malloc(fnum*sizeof(*queues));

@@ -8,6 +8,8 @@ using namespace std;
 #define REPEAT_INPUT 5 // repeat the same set of input this many times
 #define min(a, b) a<b? a : b
 
+extern "C" int run_omp(int fnum, char** files, int nThreads);
+
 
 int main(int argc, char* argv[]){
     int pid, numproc;
@@ -31,7 +33,7 @@ int main(int argc, char* argv[]){
                 //cout << fname << endl;
                 if(fname == "." || fname == "..") continue;
                 
-                filenames.push_back(fname);
+                filenames.push_back(input_dir+fname);
             }
             closedir(dir);
         }
@@ -86,15 +88,28 @@ int main(int argc, char* argv[]){
         while(!all_done){
             MPI_Recv(fname, FLEN, MPI_CHAR, 0, pid, MPI_COMM_WORLD, &status);
             
-            string fstr(fname);
-            fnames.push_back(fstr);
-            
             if(strcmp(s.c_str(), fname) == 0) all_done = true;
-
+            else{
+            
+                string fstr(fname);
+                fnames.push_back(fstr);
+            
+            }
         }
 
         // call the OMP routine for mapping
+        char** filenames = (char**)malloc(sizeof(char*)*fnames.size());
         
+        for(unsigned int i=0; i<fnames.size(); i++){
+            
+            filenames[i] = (char*)fnames[i].c_str();
+        
+        }
+        
+        run_omp((int)fnames.size(), filenames, NTHREADS );
+            
+
+        free(filenames);
     
     }
 
