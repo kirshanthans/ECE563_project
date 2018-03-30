@@ -7,8 +7,11 @@
 using namespace std;
 #define REPEAT_INPUT 5 // repeat the same set of input this many times
 #define min(a, b) a<b? a : b
+#define MIN(pid, arraySize, numP) (int)(pid*(arraySize/(double)numP))
+#define MAX(pid, arraySize, numP) (int)((pid+1)*(arraySize/(double)numP)) - 1
 
-extern "C" int run_omp(int fnum, char** files, int nThreads);
+
+extern "C" struct hashMap** run_omp(int fnum, char** files, int nThreads);
 
 
 int main(int argc, char* argv[]){
@@ -106,8 +109,27 @@ int main(int argc, char* argv[]){
         
         }
         
-        run_omp((int)fnames.size(), filenames, NTHREADS );
+        struct hashMap**  map = run_omp((int)fnames.size(), filenames, NTHREADS);
+        
+        // on which range this process work on the hash table
+        int l = (int)((pid-1)*(TableSize/(double)(numproc-1)));
+        int u =  (int)((pid)*(TableSize/(double)(numproc -1))) - 1;
+        cout << "pid : " << pid << " l = " << l << " u = " << u << endl;
+        //#pragma omp parallel sections
+        //{
+             //sender thread
+            //#pragma omp section
+            //{
+                
+            //}
             
+             //receive thread
+            //#pragma omp section
+            //{
+
+            //}
+        
+        //}
 
         free(filenames);
     

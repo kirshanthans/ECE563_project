@@ -1,4 +1,5 @@
 #include "omp_map_reduce.h"
+#include <mpi.h>
 
 int hash( char *str)
 {
@@ -220,7 +221,7 @@ void reducer(char * fileName,int start,int end,struct hashMap ** maps, int fnum)
 
 
 
-int run_omp(int fnum, char** files, int nThreads)
+struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid)
 {
 
 
@@ -287,21 +288,20 @@ int run_omp(int fnum, char** files, int nThreads)
 				mapInput(&queues[i],&maps[i]);		
 		}
 	}
-	
-	int blockSize=TableSize/nThreads;
-	#pragma omp parallel num_threads(numOfThreads)
-	{
-		char Fname[15];
-		sprintf(Fname, "OutputR%d.txt",omp_get_thread_num());
-		if(omp_get_thread_num()==nThreads-1){
-			reducer(Fname,blockSize*omp_get_thread_num(),TableSize,maps, fnum);
-		}
-		else
-		{
-			reducer(Fname,blockSize*omp_get_thread_num(),blockSize*omp_get_thread_num()+blockSize,maps, fnum);
-		}
-	}
-	
+	/*int blockSize=TableSize/nThreads;*/
+	/*#pragma omp parallel num_threads(numOfThreads)*/
+	/*{*/
+		/*char Fname[64];*/
+		/*sprintf(Fname, "Output_pid%d_tid%d.txt", pid, omp_get_thread_num());*/
+		/*if(omp_get_thread_num()==nThreads-1){*/
+			/*reducer(Fname,blockSize*omp_get_thread_num(),TableSize,maps, fnum);*/
+		/*}*/
+		/*else*/
+		/*{*/
+			/*reducer(Fname,blockSize*omp_get_thread_num(),blockSize*omp_get_thread_num()+blockSize,maps, fnum);*/
+		/*}*/
+	/*}*/
+
 	
 	
 	
@@ -313,5 +313,5 @@ int run_omp(int fnum, char** files, int nThreads)
 	free(queues);
 
 
-	return EXIT_SUCCESS;
+	return maps;
 }

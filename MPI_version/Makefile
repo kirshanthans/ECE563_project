@@ -1,4 +1,4 @@
-CC_OMP := gcc
+CC_OMP := mpicc
 CC_MPI := mpicxx
 LIB := 
 CFLAGS := -fopenmp
@@ -9,5 +9,5 @@ all :
 	$(CC_MPI) $(CFLAGS) *.o -o mpi_wc
 
 clean :
-	rm -f mpi_wc omp_map_reduce.o mpi_wc.o OutputR*
+	rm -f mpi_wc omp_map_reduce.o mpi_wc.o Output_*
 
