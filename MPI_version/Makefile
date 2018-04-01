@@ -9,5 +9,6 @@ all :
 	$(CC_MPI) $(CFLAGS) *.o -o mpi_wc
 
 clean :
-	rm -f mpi_wc omp_map_reduce.o mpi_wc.o Output_*
+	rm -f mpi_wc omp_map_reduce.o mpi_wc.o Output_* Result_*
+	
 

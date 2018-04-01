@@ -40,9 +40,10 @@ void run_receiver(int numP, int pid, std::map<string, int>& wc_map){
             update_map(word, atoi(count), wc_map);
         }
     }
-    //cout << pid << " running receiver " << endl; 
-     //here the receiver is reading form all other processes
-     //in a round robin manneh
+    // remove the local file
+    if(remove(fname) != 0) cout << "Erorr deleting file : " << fname << endl;
+    //here the receiver is reading from all processes in a worklist mannar
+    //i.e. using ANY_SOURCE since we don't know the order msgs are received
     MPI_Status status;
     std::map<int, bool> done_map; // this maps keeps track of which processes are done
     for(int i=1; i<numP; i++) done_map.insert(std::pair<int, bool>(i, false));
@@ -55,6 +56,8 @@ void run_receiver(int numP, int pid, std::map<string, int>& wc_map){
             MPI_Recv(msg, 512, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
             
             string msgstr(msg);
+            // first check end of file is received. if so we no longer in that
+            // source
             if(msgstr.compare("end of file") == 0){
                 done_map[status.MPI_SOURCE] = true;
                 
@@ -63,7 +66,7 @@ void run_receiver(int numP, int pid, std::map<string, int>& wc_map){
                 string word = string(strtok((char*)msgstr.c_str(), " "));
                 char * count = strtok(NULL, " ");
                 if(count){
-                    cout << "word : " << word << "count :  " << count << endl;
+                    //cout << "word : " << word << "count :  " << count << endl;
                     update_map(word, atoi(count), wc_map);
                     // we found an entry so repeat loop one more time
                     done = false;
@@ -98,7 +101,8 @@ void run_sender(int numP, int pid){
         strcpy(eofstr, endoffile.c_str());
         MPI_Send(eofstr, 512, MPI_CHAR, i, i, MPI_COMM_WORLD);
    
-   
+        //remove the file
+        if(remove(fname) != 0) cout << "Error deleting file : " << fname << endl;
     }
 }
 
@@ -219,6 +223,22 @@ int main(int argc, char* argv[]){
                 run_receiver(numproc, pid, word_count_map);
             }
         }
+        // here write the output to a file
+        //cout << "pid : " << pid << " size of word map : " << word_count_map.size() << endl;
+        char outfname[64];
+        sprintf(outfname, "Result_pid%d.txt", pid);
+        FILE* pFile = fopen(outfname, "w");
+
+
+        std::map<string, int>::iterator it = word_count_map.begin();
+        for(; it!=word_count_map.end(); it++){
+            string wordstr = it->first;
+            fprintf(pFile, "%-128s%d\n", wordstr.c_str(), it->second);
+            //outfile << it->first << string(" ", 128) << it->second << endl;
+            //cout << it->first << endl;
+            //cout << it->second << endl;
+        }
+        fclose(pFile);
 
         free(filenames);
     
