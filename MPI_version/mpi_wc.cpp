@@ -1,8 +1,11 @@
 #include <dirent.h>
+#include <map>
 #include <mpi.h>
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
 #include "omp_map_reduce.h"
 using namespace std;
 #define REPEAT_INPUT 5 // repeat the same set of input this many times
@@ -11,14 +14,104 @@ using namespace std;
 #define MAX(pid, arraySize, numP) (int)((pid+1)*(arraySize/(double)numP)) - 1
 
 
-extern "C" struct hashMap** run_omp(int fnum, char** files, int nThreads);
+extern "C" struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid, int numproc);
+
+void update_map(string word, int count, std::map<string,int>& wc_map){
+    std::map<string, int>::iterator it = wc_map.find(word);
+    if(it != wc_map.end()) it->second += count;
+    else{
+        wc_map.insert(std::pair<string, int>(word, count));
+    }
+    
+}
+
+void run_receiver(int numP, int pid, std::map<string, int>& wc_map){
+    // first read files relavent to this pid and update the wc_map
+    char fname[64];
+    sprintf(fname, "Output_pid%d_tid%d.txt", pid, pid);
+    std::ifstream infile(fname);
+    string line;
+    while(std::getline(infile, line)){
+        char * cline = (char*)line.c_str();
+        string word = string(strtok(cline, " "));
+        char * count = strtok(NULL, " ");
+        if(!count) continue; // TODO : this is a bug in omp version
+        else{
+            update_map(word, atoi(count), wc_map);
+        }
+    }
+    //cout << pid << " running receiver " << endl; 
+     //here the receiver is reading form all other processes
+     //in a round robin manneh
+    MPI_Status status;
+    std::map<int, bool> done_map; // this maps keeps track of which processes are done
+    for(int i=1; i<numP; i++) done_map.insert(std::pair<int, bool>(i, false));
+    bool done = false;
+    while(!done){
+        done = true;
+        for(int i=1; i<numP; i++){
+            if(i==pid || done_map[i] ) continue;
+            char msg[512];
+            MPI_Recv(msg, 512, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            
+            string msgstr(msg);
+            if(msgstr.compare("end of file") == 0){
+                done_map[status.MPI_SOURCE] = true;
+                
+            }
+            else{
+                string word = string(strtok((char*)msgstr.c_str(), " "));
+                char * count = strtok(NULL, " ");
+                if(count){
+                    cout << "word : " << word << "count :  " << count << endl;
+                    update_map(word, atoi(count), wc_map);
+                    // we found an entry so repeat loop one more time
+                    done = false;
+                }
+            }
+        }
+     }
+
+
+}
+
+void run_sender(int numP, int pid){
+
+    for(int i=1; i<numP; i++){
+        if(i==pid) continue;
+
+        // read the file and send data to relavent process
+        char fname[64];
+        sprintf(fname, "Output_pid%d_tid%d.txt", pid, i);
+        std::ifstream infile(fname);
+        string line;
+        while(std::getline(infile, line)){
+            char copy[512];
+            strcpy(copy, line.c_str());
+            copy[511] = '\0';
+            MPI_Send(copy, 512, MPI_CHAR, i, i, MPI_COMM_WORLD); 
+        }
+        
+        // here we send a end of file string
+        string endoffile = "end of file";
+        char eofstr[512];
+        strcpy(eofstr, endoffile.c_str());
+        MPI_Send(eofstr, 512, MPI_CHAR, i, i, MPI_COMM_WORLD);
+   
+   
+    }
+}
+
+
 
 
 int main(int argc, char* argv[]){
     int pid, numproc;
     MPI_Status status;
-
-    MPI_Init(&argc, &argv);                 
+    int provided;
+    //MPI_Init_thread(&argc, &argv, NTHREADS, &provided); // not sure about this?
+    
+    MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numproc);   
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);  
     
@@ -109,27 +202,23 @@ int main(int argc, char* argv[]){
         
         }
         
-        struct hashMap**  map = run_omp((int)fnames.size(), filenames, NTHREADS);
+        struct hashMap**  maps = run_omp((int)fnames.size(), filenames, NTHREADS, pid, numproc);
         
-        // on which range this process work on the hash table
-        int l = (int)((pid-1)*(TableSize/(double)(numproc-1)));
-        int u =  (int)((pid)*(TableSize/(double)(numproc -1))) - 1;
-        cout << "pid : " << pid << " l = " << l << " u = " << u << endl;
-        //#pragma omp parallel sections
-        //{
-             //sender thread
+       
+        // now combine the results globally communicating with other processes
+        // we will use sender and reciever threads
+        std::map<string, int> word_count_map;
+        //#pragma omp parallel sections 
+        {
             //#pragma omp section
-            //{
-                
-            //}
-            
-             //receive thread
+            {
+                run_sender(numproc, pid);
+            }
             //#pragma omp section
-            //{
-
-            //}
-        
-        //}
+            {
+                run_receiver(numproc, pid, word_count_map);
+            }
+        }
 
         free(filenames);
     

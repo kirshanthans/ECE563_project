@@ -207,7 +207,7 @@ void reducer(char * fileName,int start,int end,struct hashMap ** maps, int fnum)
 				{
 					c+=get(&maps[k],v);
 				}
-				fprintf(f,"%-20s%d\n",v,c);
+				fprintf(f,"%-128s%d\n",v,c);
 			}	
 		}
 
@@ -221,7 +221,7 @@ void reducer(char * fileName,int start,int end,struct hashMap ** maps, int fnum)
 
 
 
-struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid)
+struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid, int numproc)
 {
 
 
@@ -288,19 +288,19 @@ struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid)
 				mapInput(&queues[i],&maps[i]);		
 		}
 	}
-	/*int blockSize=TableSize/nThreads;*/
-	/*#pragma omp parallel num_threads(numOfThreads)*/
-	/*{*/
-		/*char Fname[64];*/
-		/*sprintf(Fname, "Output_pid%d_tid%d.txt", pid, omp_get_thread_num());*/
-		/*if(omp_get_thread_num()==nThreads-1){*/
-			/*reducer(Fname,blockSize*omp_get_thread_num(),TableSize,maps, fnum);*/
-		/*}*/
-		/*else*/
-		/*{*/
-			/*reducer(Fname,blockSize*omp_get_thread_num(),blockSize*omp_get_thread_num()+blockSize,maps, fnum);*/
-		/*}*/
-	/*}*/
+    int blockSize=TableSize/(numproc-1);
+    #pragma omp parallel num_threads(numproc-1)
+    {
+        char Fname[64];
+        sprintf(Fname, "Output_pid%d_tid%d.txt", pid, omp_get_thread_num()+1);
+        if(omp_get_thread_num()==nThreads-1){
+            reducer(Fname,blockSize*omp_get_thread_num(),TableSize,maps, fnum);
+        }
+        else
+        {
+            reducer(Fname,blockSize*omp_get_thread_num(),blockSize*omp_get_thread_num()+blockSize,maps, fnum);
+        }
+    }
 
 	
 	
