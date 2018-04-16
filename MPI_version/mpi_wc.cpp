@@ -113,9 +113,9 @@ int main(int argc, char* argv[]){
     int pid, numproc;
     MPI_Status status;
     int provided;
-    //MPI_Init_thread(&argc, &argv, NTHREADS, &provided); // not sure about this?
+    MPI_Init_thread(&argc, &argv, NTHREADS, &provided); // not sure about this?
     
-    MPI_Init(&argc, &argv);
+    //MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numproc);   
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);  
     
@@ -212,13 +212,13 @@ int main(int argc, char* argv[]){
         // now combine the results globally communicating with other processes
         // we will use sender and reciever threads
         std::map<string, int> word_count_map;
-        //#pragma omp parallel sections 
+        #pragma omp parallel sections 
         {
-            //#pragma omp section
+            #pragma omp section
             {
                 run_sender(numproc, pid);
             }
-            //#pragma omp section
+            #pragma omp section
             {
                 run_receiver(numproc, pid, word_count_map);
             }
