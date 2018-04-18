@@ -315,3 +315,38 @@ struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid, int nump
 
 	return maps;
 }
+
+struct hashMap** run_omp_seq(int fnum, char** files)
+{
+
+
+	char ** inputFiles = files;
+		
+	int i;
+	struct queue ** queues;
+	struct hashMap ** maps;
+
+    // Commented out the serial implementation for now 
+	queues= malloc(fnum*sizeof(*queues));
+	maps= malloc(fnum*sizeof(*maps));
+	for(i=0;i<fnum;i++)
+	{
+		queues[i]=malloc(sizeof(tqueue));
+		queues[i]->head=NULL;
+		queues[i]->tail=NULL;
+		queues[i]->noMoreWork=false;
+		maps[i]=malloc(sizeof(hashMapT));
+		maps[i]->table=calloc(TableSize,sizeof(struct hashNode*));
+	}	
+
+	
+	double exectime1 = -omp_get_wtime();
+	for(i=0;i<fnum;i++)
+		fillQueue(inputFiles[i],&queues[i],i);
+	for(i=0;i<fnum;i++)
+		mapInput(&queues[i],&maps[i]);
+	reducer("Serial.txt",0,TableSize,maps,fnum);
+	exectime1 += omp_get_wtime();
+	printf("Serial Time:%f\n",exectime1);
+	
+}
