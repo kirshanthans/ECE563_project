@@ -22,7 +22,36 @@
 \begin{document}
 \maketitle
 \section{Overall Strategy}
+\subsection{OpenMP implementation}
+\label{omp-impl}
+\subsection{MPI implementation}
+In the MPI implementation we split the files in {\em RawText } directory among the available MPI processes. The distribution of files is done by a master process ( process $0$).
+Master process read all the filenames in the input directory and stores them in a list. Then later sends $m$  number of files to each worker process in a round robin fashion as long as the file
+list is not empty. If the file list is empty master sends a special {\em ``all done!''} message to all worker processes. Each worker process keeps receiving files in to its local file list until
+it receives the {\em``all done!''} message. After all the files are received, a worker run its own instance of OpenMP map reduce which is described in section~\ref{omp-impl}. The results of the
+local map reduce is written in to $P$ number of files where $P$ is the number of worker processes. 
 
+\noindent \textbf{Sender Thread} : In the next step each worker initiate a sender thread and receiver thread. Sender threads job is
+to send the local result to the worker who is responsible for the global reduction. For example if process $P1$ is responsible for counting the word {\em ``always''} all the other processes send their
+local counts of that word to $P1$ and $P1$ does the final reduction. In our implementation the word count hash table is split among the processes uniformly i.e. if the hash table size is $M$ each worker gets 
+to reduce $N/P$ of words where $P$ is the number of workers. If the sender is done with a local result that needs to be sent to a specific worker it will send a special {\em ``end of file''} message. This
+lets the receiving end know that it received the complete result from this sender. 
+
+\noindent \textbf{Receiver Thread} : The receiver thread does the final reduction on the set of words assigned it. Receiver keeps receiving local results from all the other processes until it 
+receives the {\em ``end of file''} messages from all 
+other workers. At the end receiver writes it final reduction result to a file. Therefore at the end there will be $P$ files containing the final result each corresponding to specific portion of the word 
+count hash table. 
+
+\noindent \textbf{Communication Strategy} : We used a fairly simple communication strategy for the whole MPI implementation. For the file name distribution, since only the master process is sending and all others are 
+receiving its straight forward to use {\em MPI\_Recv}'s at the receiving end. But things get little complicated in the reduction step because every process need to send different data to every other process. This makes 
+it difficult to know in what order the messages will be received by a given process. We solved this problem by using {\em MPI\_Recv}'s with {\em MPI\_ANY\_SOURCE} as the source and {\em MPI\_Status} tells us who actually sent 
+the message.
+\section{Evaluation}
+\subsection{Speedup and Efficiency}
+\subsection{Karp-Flatt Analysis}
+\subsection{Thread Performance}
+\subsection{Performance Bottlenecks}
+\subsection{Suggested Improvements}
 %\begin{table*}[ht]
 %\centering
 %\resizebox{\columnwidth}{!}{
