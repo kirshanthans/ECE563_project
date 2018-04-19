@@ -8,7 +8,7 @@
 #include <sstream>
 #include "omp_map_reduce.h"
 using namespace std;
-#define REPEAT_INPUT 1 // repeat the same set of input this many times
+#define REPEAT_INPUT 2 // repeat the same set of input this many times
 #define min(a, b) a<b? a : b
 #define MIN(pid, arraySize, numP) (int)(pid*(arraySize/(double)numP))
 #define MAX(pid, arraySize, numP) (int)((pid+1)*(arraySize/(double)numP)) - 1
@@ -33,6 +33,9 @@ int main(int argc, char* argv[]){
     vector<string> fnames;
     string input_dir = "../RawText/";
 
+    // meassure time
+    double elapsed = -omp_get_wtime();
+
     if((dir = opendir(input_dir.c_str())) != NULL){
         while((entry = readdir(dir)) != NULL){
             string fname(entry->d_name);
@@ -55,6 +58,7 @@ int main(int argc, char* argv[]){
         for(unsigned int j=0; j<no_of_files; j++) fnames.push_back(fnames[j]);
     }
 
+    cout << "No of input files for word count = " << fnames.size() << endl;
         
     // call the OMP routine for mapping
     char** filenames = (char**)malloc(sizeof(char*)*fnames.size());
@@ -69,6 +73,11 @@ int main(int argc, char* argv[]){
     run_omp_seq((int)fnames.size(), filenames);
 
     
+    elapsed += omp_get_wtime();
+
+    cout << "eplapsed time for sequentral version = " << elapsed << endl;
+
+
     free(filenames);
     
     return 0;

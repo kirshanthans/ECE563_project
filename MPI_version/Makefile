@@ -11,6 +11,6 @@ all :
 	$(CC_MPI) $(CFLAGS) omp_map_reduce.o mpi_seq.o -o mpi_seq
 
 clean :
-	rm -f mpi_wc omp_map_reduce.o mpi_wc.o Output_* Result_* mpi_seq mpi_seq.o
+	rm -f mpi_wc omp_map_reduce.o mpi_wc.o Output_* Result_* mpi_seq mpi_seq.o Serial.txt
 	
 

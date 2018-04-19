@@ -293,7 +293,7 @@ struct hashMap** run_omp(int fnum, char** files, int nThreads, int pid, int nump
     {
         char Fname[64];
         sprintf(Fname, "Output_pid%d_tid%d.txt", pid, omp_get_thread_num()+1);
-        if(omp_get_thread_num()==nThreads-1){
+        if(omp_get_thread_num()==numproc-1){
             reducer(Fname,blockSize*omp_get_thread_num(),TableSize,maps, fnum);
         }
         else
@@ -340,13 +340,13 @@ struct hashMap** run_omp_seq(int fnum, char** files)
 	}	
 
 	
-	double exectime1 = -omp_get_wtime();
+	/*double exectime1 = -omp_get_wtime();*/
 	for(i=0;i<fnum;i++)
 		fillQueue(inputFiles[i],&queues[i],i);
 	for(i=0;i<fnum;i++)
 		mapInput(&queues[i],&maps[i]);
 	reducer("Serial.txt",0,TableSize,maps,fnum);
-	exectime1 += omp_get_wtime();
-	printf("Serial Time:%f\n",exectime1);
+	/*exectime1 += omp_get_wtime();*/
+	/*printf("Serial Time:%f\n",exectime1);*/
 	
 }

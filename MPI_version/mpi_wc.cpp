@@ -119,6 +119,9 @@ int main(int argc, char* argv[]){
     MPI_Comm_size(MPI_COMM_WORLD, &numproc);   
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);  
     
+    // timing
+    double elapsed = -MPI_Wtime();
+
     // every node will ask files from master. If files available
     // master will send '1' follwed by the file name. else send '0' (all done).
     if(pid == 0){
@@ -148,6 +151,8 @@ int main(int argc, char* argv[]){
         for(int i=0; i<REPEAT_INPUT-1; i++){
             for(unsigned int j=0; j<no_of_files; j++) filenames.push_back(filenames[j]);
         }
+
+        cout << "No of input files for parallel word count = " << filenames.size() << endl;
         //send FNUM files to each process
         while(!filenames.empty()){
             for(int i=1; i<numproc; i++){
@@ -177,6 +182,7 @@ int main(int argc, char* argv[]){
         for(int i=1; i<numproc; i++){
             MPI_Send(all_done_msg, FLEN, MPI_CHAR, i, i, MPI_COMM_WORLD);
         }
+
     }
     else{
         
@@ -244,6 +250,10 @@ int main(int argc, char* argv[]){
     
     }
 
+    // barrier for timing
+    MPI_Barrier(MPI_COMM_WORLD);
+    elapsed += MPI_Wtime();
+    if(pid == 0) cout << "Elapsed time for parallel implementation = " << elapsed << endl;
 
     MPI_Finalize();
     return 0;
