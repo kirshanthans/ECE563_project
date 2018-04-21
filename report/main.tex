@@ -48,7 +48,40 @@ it difficult to know in what order the messages will be received by a given proc
 the message.
 \section{Evaluation}
 \subsection{Speedup and Efficiency}
+\begin{table*}[ht]
+\centering
+%\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|l|l|l|}
+\hline
+ No of Workers & Parallel time  & Speedup & Efficiency\\ \hline
+ 2  & 0.3877    & 1.553  & \\ \hline
+ 4  & 0.2149    & 2.803  & \\ \hline
+ 8  & 0.1130    & 5.335  &\\ \hline
+ 16 & 0.6033    & 6.689  & \\ \hline
+\end{tabular}
+%}
+\caption{Running time (in seconds) and speedups for OpenMP matrix multiply}
+\label{omp-table}
+\end{table*}
+
 \subsection{Karp-Flatt Analysis}
+\begin{table*}[ht]
+\centering
+%\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|l|l|l|}
+\hline
+ No of Workers & Speedup  & Karp-Flatt metric($e$) \\ \hline
+ 2  & 0.3877    & 1.553   \\ \hline
+ 4  & 0.2149    & 2.803   \\ \hline
+ 8  & 0.1130    & 5.335  \\ \hline
+ 16 & 0.6033    & 6.689   \\ \hline
+\end{tabular}
+%}
+\caption{Running time (in seconds) and speedups for OpenMP matrix multiply}
+\label{omp-table}
+\end{table*}
+
+
 \subsection{Thread Performance}
 \subsection{Performance Bottlenecks}
 \subsection{Suggested Improvements}
