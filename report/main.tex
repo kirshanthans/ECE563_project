@@ -23,6 +23,15 @@
 \maketitle
 \section{Overall Strategy}
 \subsection{OpenMP implementation}
+This report will discuss a lock free strategy for implementing the Map\_Reduce programming model. Map\_Reduce has four main steps. First, reading input files, and divide the input files into separate lines. Second, map each word in each line using DJB2 hash function. Third, reducing words from different input files. Last, writing the words count.
+\vspace{5mm}
+\noindent Each reader will take couple of input files and fill them into separate queues. Thus, each file has its own linkedlist queue. Reader will read the file line by line; each line is a node in a linkedlist queue. Each Queue linkedlist has head and tail. While reader uses tail to put data (line) on the queue, mapper will use the head to get data (line) from the queue. This queue linkedlist has a synchronization problem, which happens if the queue has one node left (head=tail) at any moment. If the mapper gets to the head first, it will take the line of data, and head will be NULL. Then, the reader will add new line to the tail. But head is not linked to the linkedlist anymore. To solve this issue, the mapper cannot take data from the head if the head->next==NULL. Unless, reader has finished reading the whole input file. 
+\vspace{5mm}
+\noindent Each mapper will map couple of input files. As discussed, each mapper will use the heads of queues for couple of files to map words using DJB2 hash function; creating a hash table for each file. Thus, $Read_Map$ operation will convert each file into a hash table that contains the words of the file and the count of appearance for each word. Each entry in a hash table is a node in a linkedlist. In case two words have the same hash value, the new word will be added to the head of the linkedlist.
+\vspace{5mm}
+Each reducer will take a specific range of the hash tables. For example, if the number of files is 3, and hash table size is 1000; with four reducers, reducer\_1 will take indices from 0-249 of hash table 1,2 and 3. reducer\_2 will take indices 250-499 of hash table 1,2 and 3, and so on. For each entry in a hash table, the reducer will look for it in the other hash tables; it will delete the entry wherever it is found. Each time reducer reduces a word, it will write it on a file. Thus, each reducer will create a file that contains the words it reduced.
+
+
 \label{omp-impl}
 \subsection{MPI implementation}
 In the MPI implementation we split the files in {\em RawText } directory among the available MPI processes. The distribution of files is done by a master process ( process $0$).
