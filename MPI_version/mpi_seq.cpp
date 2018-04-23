@@ -8,7 +8,7 @@
 #include <sstream>
 #include "omp_map_reduce.h"
 using namespace std;
-#define REPEAT_INPUT 2 // repeat the same set of input this many times
+#define REPEAT_INPUT 10 // repeat the same set of input this many times
 #define min(a, b) a<b? a : b
 #define MIN(pid, arraySize, numP) (int)(pid*(arraySize/(double)numP))
 #define MAX(pid, arraySize, numP) (int)((pid+1)*(arraySize/(double)numP)) - 1
