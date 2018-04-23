@@ -1,0 +1,11 @@
+No of input files for parallel word count = 180
+worker 2 took 1.67491
+worker 3 took 1.7399
+worker 4 took 1.80194
+worker 1 took 1.80505
+worker 5 took 1.82595
+worker 6 took 1.83232
+worker 7 took 1.85075
+worker 8 took 1.86469
+No of processes = 9
+Elapsed time for parallel implementation = 1.86559

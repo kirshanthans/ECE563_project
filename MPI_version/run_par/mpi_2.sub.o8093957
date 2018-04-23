@@ -1,0 +1,3 @@
+No of input files for parallel word count = 180
+No of processes = 2
+Elapsed time for parallel implementation = 3.71124
