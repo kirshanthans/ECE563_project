@@ -23,14 +23,14 @@
 \maketitle
 \section{Overall Strategy}
 \subsection{OpenMP implementation}
+\label{omp-impl}
 This section will discuss a lock free strategy for implementing the Map-Reduce programming model that we used for out OpenMP version. Map-Reduce has four main steps. First, reading input files, and divide the input files into separate lines. Second, map each word in each line using {\em DJB2}~\cite{djb2} hash function. Third, reducing words from different input files. Last, writing the word count. 
 
-Each reader will take couple of input files and fill them into separate queues. Thus, each file has its own linked-list queue. Reader will read the file line by line; each line is a node in a linked-list queue. Each queue linked-list has head and tail. While reader uses tail to put data (line) on the queue, mapper will use the head to get data (line) from the queue. This queue linked-list has a synchronization problem, which happens if the queue has one node left{\em (head = tail)} at any moment. If the mapper gets to the head first, it will take the line of data, and head will be NULL. Then, the reader will add new line to the tail. But head is not linked to the linked-list anymore. To solve this issue, the mapper cannot take data from the head if the {\em head->next==NULL}. Unless, reader has finished reading the whole input file. 
+Each reader will take a set of input files and fill them into separate queues. Thus, each file has its own linked-list queue. Reader will read the file line by line; each line is a node in a linked-list queue. Each queue linked-list has head and tail. While reader uses tail to put data (line) on the queue, mapper will use the head to get data (line) from the queue. This queue linked-list has a synchronization problem, which happens if the queue has one node left{\em (head = tail)} at any moment. If the mapper gets to the head first, it will take the line of data, and head will be NULL. Then, the reader will add new line to the tail. But head is not linked to the linked-list anymore. To solve this issue, the mapper cannot take data from the head if the {\em head->next==NULL}. Unless, reader has finished reading the whole input file. 
 
-Each mapper will map couple of input files. As discussed, each mapper will use the heads of queues for couple of files to map words using {\em DJB2} hash function; creating a hash table for each file. Thus, {\em Read\_Map} operation will convert each file into a hash table that contains the words of the file and the count of appearance for each word. Each entry in a hash table is a node in a linked-list. In case two words have the same hash value, the new word will be added to the head of the linked-list.
+Each mapper will map a set of input files. As discussed, each mapper will use the heads of queues for couple of files to map words using {\em DJB2} hash function; creating a hash table for each file. Thus, {\em Read\_Map} operation will convert each file into a hash table that contains the words of the file and the count of appearance for each word. Each entry in a hash table is a node in a linked-list. In case two words have the same hash value, the new word will be added to the head of the linked-list.
 
 Each reducer will take a specific range of the hash tables. For example, if the number of files is 3, and hash table size is 1000; with four reducers, reducer 1 will take indices from 0-249 of hash table 1,2 and 3. Reducer 2 will take indices 250-499 of hash table 1,2 and 3, and so on. For each entry in a hash table, the reducer will look for it in the other hash tables; it will delete the entry wherever it is found. Each time reducer reduces a word, it will write it on a file. Thus, each reducer will create a file that contains the words it reduced.
-\label{omp-impl}
 \subsection{MPI implementation}
 In the MPI implementation we split the files in {\em RawText } directory among the available MPI processes. The distribution of files is done by a master process ( process $0$).
 Master process read all the filenames in the input directory and stores them in a list. Then later sends $m$  number of files to each worker process in a round robin fashion as long as the file
@@ -39,9 +39,9 @@ it receives the {\em``all done!''} message. After all the files are received, a 
 local map reduce is written in to $P$ number of files where $P$ is the number of worker processes. 
 
 \noindent \textbf{Sender Thread} : In the next step each worker initiate a sender thread and receiver thread. Sender threads job is
-to send the local result to the worker who is responsible for the global reduction. For example if process $P1$ is responsible for counting the word {\em ``always''} all the other processes send their
+to send the local result to the worker who is responsible for the global reduction. For example if process $P1$ is responsible for counting the word {\em ``always''} all the other worker processes send their
 local counts of that word to $P1$ and $P1$ does the final reduction. In our implementation the word count hash table is split among the processes uniformly i.e. if the hash table size is $M$ each worker gets 
-to reduce $N/P$ of words where $P$ is the number of workers. If the sender is done with a local result that needs to be sent to a specific worker it will send a special {\em ``end of file''} message. This
+to reduce $M/P$ of words where $P$ is the number of workers. If the sender is done with a local result that needs to be sent to a specific worker it will send a special {\em ``end of file''} message. This
 lets the receiving end know that it received the complete result from this sender. 
 
 \noindent \textbf{Receiver Thread} : The receiver thread does the final reduction on the set of words assigned it. Receiver keeps receiving local results from all the other processes until it 
@@ -116,7 +116,8 @@ For evaluating the performance of our implementation we ran it on the scholar cl
 set to 8. In order to give the program a large enough input size we repeated the files in {\em RawText} directory 10 times. Same input was used for all the runs. 
 \subsection{Speedup}
 For calculating the speedup we used a sequential version of the word-count map reduce which does not have any parallelism i.e. it uses a single thread for
-all the work. Results are shown in table~\ref{speedup-tbl}.
+all the work. Results are shown in table~\ref{speedup-tbl}. We achieved the best speedup for 8 nodes. However speedup started to decrease after 8 nodes due
+to the increasing parallel overheads.
 \begin{table*}[ht]
 \centering
 %\resizebox{\columnwidth}{!}{
@@ -133,7 +134,7 @@ all the work. Results are shown in table~\ref{speedup-tbl}.
 \end{table*}
 \subsection{Efficiency}
 For efficiency calculations we computed the speedups again compared to a OpenMP version run on single node i.e. speedup is achieved using distributed memory 
-parallelism whereas shared memory parallelism is present in both versions. This is because we got efficiencies values over 1 when they were calculated using MPI version and plain sequential version of the 
+parallelism whereas shared memory parallelism is present in both single and multi-node versions. This is because we got efficiencies values over 1 when they were calculated using MPI version and plain sequential version of the 
 algorithm. Computed efficiency values are shown in table~\ref{eff-tbl}. We got the highest efficiency for 2 nodes and the efficiency quickly diminished when the 
 no of nodes is increased.
 \begin{table*}[ht]
@@ -153,7 +154,9 @@ no of nodes is increased.
 
 \subsection{Karp-Flatt Analysis}
 Karp-Flatt analysis was performed using the speedups shown in table~\ref{eff-tbl} and figure~\ref{evals} shows the variation of Karp-Flatt
-metric.
+metric. It is clear that sequential fraction of the parallel execution is increasing rapidly in our implementation which explains the decreasing
+efficiencies and speedups. This is due to the increasing overheads due to OpenMP threads fighting over {\em malloc}, MPI communication overhead and
+dumping partial word-counts to files.
 
 \begin{figure}[H]
 \centering
@@ -162,21 +165,23 @@ metric.
 \end{figure}
 
 \subsection{Load Balance}
-To get an idea about how much time each worker is waiting for the other workers to finish, we measured the time each worker is taking to finish 
-its result to a file. Or in other words this tells how well the data is distributed among the workers. For this we ran the MPI version with 8 nodes (8 workers) and
+To get an idea about how much time each worker is waiting for the other workers to finish, we measured the time each worker is taking to write 
+its final result to a file. Or in other words this tells how well the data is distributed among the workers. For this we ran the MPI version with 8 nodes (8 workers) and
 measured the times each workers is taking to finish its work. The standard deviation of the measured times was 0.0739 seconds which is about 4\% of the average
 time consumed by each worker. Therefore we can conclude that we have a reasonable load balance even though we have not implemented techniques for distributing 
 the work among the workers fairly.
 \section{Performance Bottlenecks and Improvements}
 During our evaluation we found several performance bottlenecks. In this section we describe these bottlenecks and how to avoid them in a better implementation.
 \begin{itemize}
-    \item In our implementation readers are slow because the are fighting over {\em malloc}. As a solution we can malloc block of linked-list nodes each time rather than calling it per node. The synchronization/wait time would be less in this case, but we may end up reserve way more memory than we need, in worst case 99 extra nodes. 
+    \item In our implementation readers are slow because they are fighting over {\em malloc}. As a solution we can malloc block of linked-list nodes each time rather than calling it per node. 
+        The synchronization/wait time would be less in this case, but we may end up reserving way more memory than we need, in worst case 99 extra linked-list nodes. 
     \item We found that sequential portion of the parallel execution is very high and also growing with the no of MPI processes. This is due to the fact that we 
         did not exploit all opportunities for parallelism. For example workers do not start the Map-Reduce routine until they receive all the filenames and this
         approach increase the sequential fraction of the program. A better implementation would be to receive filenames in a separate thread and run the Map-Reduce
         alongside it. Unfortunately we did not have time to implement this optimization.
-    \item All the workers write their partial results to temporary files and read them back when final results from all the workers are integrated. This file IO
-        operations add a significant overhead. Ideal implementation is to send a specific word to the worker who is responsible for this word right away 
+    \item All the workers write their partial results to temporary files and read them back when final results from all the workers are integrated. We did this
+        to minimise using locks during parallel execution and decouple the OpenMP and MPI versions for higher portability. This file IO
+        operations add a significant overhead. Ideal implementation is to send a specific word to the worker who is responsible for that word right away 
         rather than
         computing the local count for this word and send the result later. We do not know which method is the fastest but it is clear that we have added 
         unnecessary overhead by writing partial results to files.
